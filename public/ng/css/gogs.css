@@ -340,6 +340,30 @@ img.avatar-100 {
   padding: 5px 15px;
   color: #777;
 }
+.markdown table {
+  width: 100%;
+  overflow: auto;
+  word-break: normal;
+  margin: 15px 0;
+  border-collapse: collapse;
+  border-spacing: 0;
+  display: block;
+}
+.markdown table th {
+  font-weight: 700;
+}
+.markdown table th,
+.markdown table td {
+  border: 1px solid #DDD;
+  padding: 6px 13px !important;
+}
+.markdown table tr {
+  background-color: #FFF;
+  border-top: 1px solid #CCC;
+}
+.markdown table tr:nth-child(2n) {
+  background-color: #F8F8F8;
+}
 .markdown a {
   color: #428BCA;
 }
@@ -375,29 +399,6 @@ img.avatar-100 {
 }
 .markdown h4 {
   font-size: 18px;
-}
-.markdown table {
-  border-collapse: collapse;
-  border-spacing: 0;
-  display: block;
-  overflow: auto;
-  width: 100%;
-  margin: 0 0 9px;
-}
-.markdown table th {
-  font-weight: 700;
-}
-.markdown table th,
-.markdown table td {
-  border: 1px solid #DDD;
-  padding: 6px 13px;
-}
-.markdown table tr {
-  background-color: #FFF;
-  border-top: 1px solid #CCC;
-}
-.markdown table tr:nth-child(2n) {
-  background-color: #f8f8f8;
 }
 .markdown dl dt {
   font-style: italic;
@@ -1071,7 +1072,8 @@ The register and sign-in page style
   text-overflow: clip;
 }
 #repo-content {
-  padding: 18px 0;
+  padding-top: 18px;
+  padding-bottom: 18px;
 }
 .repo-wide-wrapper {
   padding: 18px;
@@ -1352,30 +1354,53 @@ The register and sign-in page style
 #repo-create-cancel {
   margin-left: 4em;
 }
+#release-new-target-branch-list,
 #repo-create-owner-list {
   top: 30px;
   left: 0;
   width: auto;
   max-width: 300px;
 }
+#release-new-target-branch-list .octicon,
 #repo-create-owner-list .octicon {
   margin-right: 12px;
   opacity: 0;
 }
+#release-new-target-branch-list .avatar,
 #repo-create-owner-list .avatar {
   width: 20px;
   height: 20px;
 }
+#release-new-target-branch-list li,
 #repo-create-owner-list li {
   white-space: nowrap;
 }
+#release-new-target-branch-list li.checked .octicon,
 #repo-create-owner-list li.checked .octicon {
   opacity: 1;
 }
+#release-new-target-branch-list li a,
 #repo-create-owner-list li a {
   text-overflow: ellipsis;
   -o-text-overflow: ellipsis;
   overflow: hidden;
+}
+#release-new-target-branch-list {
+  margin-top: -1px;
+  min-width: 150px;
+}
+#release-new-title {
+  margin-top: 10px;
+}
+#release-new-content {
+  width: 100%;
+}
+#release-preview-btn .btn {
+  border-left: 0;
+}
+#release-preview.markdown {
+  margin-top: 5px;
+  background-color: transparent;
 }
 .file-name {
   margin-left: 1em;
@@ -1620,6 +1645,87 @@ The register and sign-in page style
   white-space: nowrap;
   margin-left: 44px;
   margin-top: -15px;
+}
+#release h4 {
+  font-size: 18px;
+}
+#release h4 small {
+  font-weight: 400;
+  line-height: 1;
+  color: #999;
+}
+#release #release-head {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #DDD;
+}
+#release #release-head .btn {
+  margin-left: 10px;
+}
+#release .release-item > div {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+#release .release-item .label-green:hover {
+  background-color: #65ad4e;
+}
+#release .release-item .release-meta {
+  position: relative;
+  float: left;
+  padding-right: 15px;
+}
+#release .release-item .tag,
+#release .release-item .commit {
+  display: block;
+  margin-top: 12px;
+  line-height: 20px;
+}
+#release .release-item .release-detail {
+  margin-top: -1px;
+  border-left: 1px solid #DDD;
+  position: relative;
+  float: left;
+  padding-left: 15px;
+}
+#release .release-item .title {
+  line-height: 25px;
+  margin-top: 0;
+}
+#release .release-item p.info {
+  line-height: 20px;
+  color: #666;
+  margin-bottom: 15px;
+}
+#release .release-item p.info > * {
+  margin-right: 10px;
+}
+#release .release-item .author img {
+  margin-top: -3px;
+}
+#release .release-item div.desc {
+  margin-bottom: 25px;
+}
+#release .release-item div.desc.markdown {
+  background-color: transparent;
+}
+#release .release-item .download a {
+  margin-right: 10px;
+}
+#release .release-item .dot {
+  width: 9px;
+  height: 9px;
+  background-color: #ccc;
+  z-index: 999;
+  position: absolute;
+  display: block;
+  left: -6px;
+  top: 27px;
+  border-radius: 6px;
+  border: 1px solid #FFF;
+}
+#release #release-new-form {
+  padding-top: 15px;
 }
 #admin-wrapper,
 #setting-wrapper {

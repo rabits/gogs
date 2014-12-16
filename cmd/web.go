@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -24,6 +25,8 @@ import (
 	"github.com/macaron-contrib/oauth2"
 	"github.com/macaron-contrib/session"
 	"github.com/macaron-contrib/toolbox"
+
+	api "github.com/gogits/go-gogs-client"
 
 	"github.com/gogits/gogs/models"
 	"github.com/gogits/gogs/modules/auth"
@@ -52,6 +55,12 @@ and it takes care of all the other things for you`,
 	Flags:  []cli.Flag{},
 }
 
+type VerChecker struct {
+	ImportPath string
+	Version    func() string
+	Expected   string
+}
+
 // checkVersion checks if binary matches the version of templates files.
 func checkVersion() {
 	// Templates.
@@ -64,17 +73,17 @@ func checkVersion() {
 	}
 
 	// Check dependency version.
-	macaronVer := git.MustParseVersion(strings.Join(strings.Split(macaron.Version(), ".")[:3], "."))
-	if macaronVer.LessThan(git.MustParseVersion("0.4.2")) {
-		log.Fatal(4, "Package macaron version is too old, did you forget to update?(github.com/Unknwon/macaron)")
+	checkers := []VerChecker{
+		{"github.com/Unknwon/macaron", macaron.Version, "0.4.7"},
+		{"github.com/macaron-contrib/binding", binding.Version, "0.0.2"},
+		{"github.com/macaron-contrib/i18n", i18n.Version, "0.0.3"},
+		{"github.com/macaron-contrib/session", session.Version, "0.0.5"},
 	}
-	i18nVer := git.MustParseVersion(i18n.Version())
-	if i18nVer.LessThan(git.MustParseVersion("0.0.2")) {
-		log.Fatal(4, "Package i18n version is too old, did you forget to update?(github.com/macaron-contrib/i18n)")
-	}
-	sessionVer := git.MustParseVersion(session.Version())
-	if sessionVer.LessThan(git.MustParseVersion("0.0.5")) {
-		log.Fatal(4, "Package session version is too old, did you forget to update?(github.com/macaron-contrib/session)")
+	for _, c := range checkers {
+		ver := strings.Join(strings.Split(c.Version(), ".")[:3], ".")
+		if git.MustParseVersion(ver).LessThan(git.MustParseVersion(c.Expected)) {
+			log.Fatal(4, "Package '%s' version is too old(%s -> %s), did you forget to update?", c.ImportPath, ver, c.Expected)
+		}
 	}
 }
 
@@ -199,14 +208,15 @@ func runWeb(*cli.Context) {
 			})
 
 			// Repositories.
-			m.Get("/user/repos", middleware.ApiReqToken(), v1.ListMyRepos)
+			m.Combo("/user/repos", middleware.ApiReqToken()).Get(v1.ListMyRepos).Post(bind(api.CreateRepoOption{}), v1.CreateRepo)
+			m.Post("/org/:org/repos", middleware.ApiReqToken(), bind(api.CreateRepoOption{}), v1.CreateOrgRepo)
 			m.Group("/repos", func() {
 				m.Get("/search", v1.SearchRepos)
-				m.Post("/migrate", bindIgnErr(auth.MigrateRepoForm{}), v1.Migrate)
+				m.Post("/migrate", bindIgnErr(auth.MigrateRepoForm{}), v1.MigrateRepo)
 
 				m.Group("/:username/:reponame", func() {
-					m.Combo("/hooks").Get(v1.ListRepoHooks).Post(bind(v1.CreateRepoHookForm{}), v1.CreateRepoHook)
-					m.Patch("/hooks/:id:int", bind(v1.EditRepoHookForm{}), v1.EditRepoHook)
+					m.Combo("/hooks").Get(v1.ListRepoHooks).Post(bind(api.CreateHookOption{}), v1.CreateRepoHook)
+					m.Patch("/hooks/:id:int", bind(api.EditHookOption{}), v1.EditRepoHook)
 					m.Get("/raw/*", middleware.RepoRef(), v1.GetRepoRawFile)
 				}, middleware.ApiRepoAssignment(), middleware.ApiReqToken())
 			})
@@ -397,14 +407,17 @@ func runWeb(*cli.Context) {
 		})
 
 		m.Post("/comment/:action", repo.Comment)
-		m.Get("/releases/new", repo.NewRelease)
-		m.Post("/releases/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
-		m.Get("/releases/edit/:tagname", repo.EditRelease)
-		m.Post("/releases/edit/:tagname", bindIgnErr(auth.EditReleaseForm{}), repo.EditReleasePost)
+
+		m.Group("/releases", func() {
+			m.Get("/new", repo.NewRelease)
+			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
+			m.Get("/edit/:tagname", repo.EditRelease)
+			m.Post("/edit/:tagname", bindIgnErr(auth.EditReleaseForm{}), repo.EditReleasePost)
+		}, middleware.RepoRef())
 	}, reqSignIn, middleware.RepoAssignment(true))
 
 	m.Group("/:username/:reponame", func() {
-		m.Get("/releases", repo.Releases)
+		m.Get("/releases", middleware.RepoRef(), repo.Releases)
 		m.Get("/issues", repo.Issues)
 		m.Get("/issues/:index", repo.ViewIssue)
 		m.Get("/issues/milestones", repo.Milestones)
@@ -450,7 +463,8 @@ func runWeb(*cli.Context) {
 	case setting.HTTP:
 		err = http.ListenAndServe(listenAddr, m)
 	case setting.HTTPS:
-		err = http.ListenAndServeTLS(listenAddr, setting.CertFile, setting.KeyFile, m)
+		server := &http.Server{Addr: listenAddr, TLSConfig: &tls.Config{MinVersion: tls.VersionTLS10}, Handler: m}
+		err = server.ListenAndServeTLS(setting.CertFile, setting.KeyFile)
 	case setting.FCGI:
 		err = fcgi.Serve(nil, m)
 	default:

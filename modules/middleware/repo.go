@@ -55,7 +55,7 @@ func ApiRepoAssignment() macaron.Handler {
 		ctx.Repo.Owner = u
 
 		// Organization owner team members are true owners as well.
-		if ctx.IsSigned && ctx.Repo.Owner.IsOrganization() && ctx.Repo.Owner.IsOrgOwner(ctx.User.Id) {
+		if ctx.IsSigned && ctx.Repo.Owner.IsOrganization() && ctx.Repo.Owner.IsOwnedBy(ctx.User.Id) {
 			ctx.Repo.IsTrueOwner = true
 		}
 
@@ -280,7 +280,7 @@ func RepoAssignment(redirect bool, args ...bool) macaron.Handler {
 		ctx.Repo.Owner = u
 
 		// Organization owner team members are true owners as well.
-		if ctx.IsSigned && ctx.Repo.Owner.IsOrganization() && ctx.Repo.Owner.IsOrgOwner(ctx.User.Id) {
+		if ctx.IsSigned && ctx.Repo.Owner.IsOrganization() && ctx.Repo.Owner.IsOwnedBy(ctx.User.Id) {
 			ctx.Repo.IsTrueOwner = true
 		}
 
@@ -386,12 +386,11 @@ func RepoAssignment(redirect bool, args ...bool) macaron.Handler {
 		ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner
 		ctx.Data["IsRepositoryTrueOwner"] = ctx.Repo.IsTrueOwner
 
-		if setting.SshPort != 22 {
-			ctx.Repo.CloneLink.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", setting.RunUser, setting.Domain, setting.SshPort, u.LowerName, repo.LowerName)
-		} else {
-			ctx.Repo.CloneLink.SSH = fmt.Sprintf("%s@%s:%s/%s.git", setting.RunUser, setting.Domain, u.LowerName, repo.LowerName)
+		ctx.Repo.CloneLink, err = repo.CloneLink()
+		if err != nil {
+			ctx.Handle(500, "CloneLink", err)
+			return
 		}
-		ctx.Repo.CloneLink.HTTPS = fmt.Sprintf("%s%s/%s.git", setting.AppUrl, u.LowerName, repo.LowerName)
 		ctx.Data["CloneLink"] = ctx.Repo.CloneLink
 
 		if ctx.Repo.Repository.IsGoget {
